@@ -203,3 +203,151 @@ jobs:
           sleep 10
           curl -f http://localhost:8080/api/health || exit 1
           docker stop test-container
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get next version
+        id: version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+
+          # Extract version numbers
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r -a VERSION_PARTS <<< "$VERSION"
+          MAJOR=${VERSION_PARTS[0]:-0}
+          MINOR=${VERSION_PARTS[1]:-0}
+          PATCH=${VERSION_PARTS[2]:-0}
+
+          # Increment patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="v${MAJOR}.${MINOR}.${NEW_PATCH}"
+
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_without_v=${MAJOR}.${MINOR}.${NEW_PATCH}" >> $GITHUB_OUTPUT
+
+      - name: Build release binaries
+        env:
+          VERSION: ${{ steps.version.outputs.version_without_v }}
+        run: |
+          mkdir -p dist
+
+          # Build for multiple platforms
+          PLATFORMS="linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64"
+
+          for platform in $PLATFORMS; do
+            GOOS=${platform%/*}
+            GOARCH=${platform#*/}
+            OUTPUT_NAME="testing-ci-${VERSION}-${GOOS}-${GOARCH}"
+
+            if [ "$GOOS" = "windows" ]; then
+              OUTPUT_NAME="${OUTPUT_NAME}.exe"
+            fi
+
+            echo "Building for $GOOS/$GOARCH..."
+            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build \
+              -ldflags "-X main.version=${VERSION} -s -w" \
+              -o "dist/${OUTPUT_NAME}" \
+              ./cmd/api
+          done
+
+          # Create checksums
+          cd dist
+          sha256sum * > checksums.txt
+
+      - name: Build Docker image for release
+        run: |
+          docker build -t testing-ci:${{ steps.version.outputs.version }} .
+          docker build -t testing-ci:latest .
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LATEST_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          # Create changelog
+          CHANGELOG="## What's Changed
+
+          $COMMITS
+
+          ## Docker Images
+
+          \`\`\`bash
+          docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+          docker pull ghcr.io/${{ github.repository }}:latest
+          \`\`\`
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${LATEST_TAG}...${{ steps.version.outputs.version }}"
+
+          # Save changelog to file
+          echo "$CHANGELOG" > changelog.md
+
+          # Set output for release notes
+          {
+            echo 'changelog<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            dist/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # - name: Push Docker images
+      #   run: |
+      #     # Tag and push versioned image
+      #     docker tag testing-ci:${{ steps.version.outputs.version }} ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+      #     docker push ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+
+      #     # Tag and push latest image
+      #     docker tag testing-ci:latest ghcr.io/${{ github.repository }}:latest
+      #     docker push ghcr.io/${{ github.repository }}:latest
+
+      - name: Update latest release
+        run: |
+          echo "✅ Release ${{ steps.version.outputs.version }} created successfully!"
+          echo "📦 Binaries available for multiple platforms"
+          echo "🐳 Docker images pushed to GitHub Container Registry"
+          echo "📋 Changelog generated automatically"
