@@ -38,7 +38,7 @@ func main() {
 	if err := srv.Stop(shutdownCtx); err != nil {
 		logger.Error("graceful shutdown failed", zapError(err))
 	} else {
-		logger.Info("server stopped")
+		logger.Info("server is stopped")
 	}
 }
 
