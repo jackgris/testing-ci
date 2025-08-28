@@ -201,5 +201,5 @@ jobs:
         run: |
           docker run --rm -d --name test-container -p 8080:8080 testing-ci:${{ github.sha }}
           sleep 10
-          curl -f http://localhost:8080/health || exit 1
+          curl -f http://localhost:8080/api/health || exit 1
           docker stop test-container
