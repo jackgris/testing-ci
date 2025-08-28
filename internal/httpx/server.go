@@ -7,7 +7,6 @@ import (
 
 	"github.com/jackgris/testing-ci/internal/config"
 	"github.com/jackgris/testing-ci/internal/logx"
-	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -41,6 +40,3 @@ func (s *Server) Stop(ctx context.Context) error {
 	s.log.Info("http server stopping")
 	return s.server.Shutdown(ctx)
 }
-
-// Minimal helpers to avoid importing zap everywhere.
-func zapString(k, v string) zap.Field { return zap.Field{Key: k, String: v} }
