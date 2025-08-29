@@ -9,7 +9,6 @@ import (
 	"github.com/jackgris/testing-ci/internal/config"
 	"github.com/jackgris/testing-ci/internal/httpx"
 	"github.com/jackgris/testing-ci/internal/logx"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -36,11 +35,8 @@ func main() {
 	defer cancel()
 
 	if err := srv.Stop(shutdownCtx); err != nil {
-		logger.Error("graceful shutdown failed", zapError(err))
+		logger.Error("graceful shutdown failed", logx.Error(err))
 	} else {
 		logger.Info("server is stopped")
 	}
 }
-
-// zapError is a small helper to avoid importing zap in main.
-func zapError(err error) zap.Field { return zap.Field{Key: "error", Interface: err} }
