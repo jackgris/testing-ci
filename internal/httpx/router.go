@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
 	"github.com/jackgris/testing-ci/internal/config"
 	"github.com/jackgris/testing-ci/internal/httpx/handlers"
 	"github.com/jackgris/testing-ci/internal/logx"
