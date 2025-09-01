@@ -43,7 +43,7 @@ jobs:
       - name: Format code
         run: |
           gofumpt -w .
-          goimports -w -local github.com/tomiok/queuety .
+          goimports -w -local github.com/jackgris/testing-ci .
 
       - name: Check if formatting changed files
         run: |

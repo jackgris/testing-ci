@@ -268,15 +268,13 @@ linters:
 
 # See the dedicated "formatters" documentation section.
 formatters:
-  gofumpt:
-    command: gofumpt
-    args: ["-w"]
-    lang-version: "1.22"
-    extra-rules: true
-
-  goimports:
-    command: goimports
-    args: ["-w", "-local", "github.com/tomiok/queuety"]
+  settings:
+    gofumpt:
+      module-path: github.com/jackgris/testing-ci
+      extra-rules: true
+    goimports:
+      local-prefixes:
+        - github.com/jackgris/testing-ci
 
 # See the dedicated "issues" documentation section.
 issues:

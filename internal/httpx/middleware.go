@@ -23,7 +23,6 @@ func RequestLogger(log logx.Logger) func(next http.Handler) http.Handler {
 				logx.String("request_id", middleware.GetReqID(r.Context())),
 				logx.Int("duration_ms", int(dur.Milliseconds())),
 			)
-
 		})
 	}
 }

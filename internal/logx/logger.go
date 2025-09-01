@@ -13,7 +13,7 @@ func New(env string) Logger {
 	return l
 }
 
-// Helpers for structured logging
+// Helpers for structured logging.
 func String(k, v string) zap.Field  { return zap.String(k, v) }
 func Int(k string, v int) zap.Field { return zap.Int(k, v) }
 func Error(err error) zap.Field     { return zap.Error(err) }
