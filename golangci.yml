@@ -276,44 +276,28 @@ formatters:
       local-prefixes:
         - github.com/jackgris/testing-ci
 
-# See the dedicated "issues" documentation section.
-issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
-        - funlen
-        - goconst
-        - gocognit
-        - mnd  # updated from gomnd
-        - lll
-
-    # Exclude some staticcheck messages
-    - linters:
-        - staticcheck
-      text: "SA9003:"
-
-    # Exclude lll issues for long lines with go:generate
-    - linters:
-        - lll
-      source: "^//go:generate "
-
-  # Show only new issues: if there are unstaged changes or untracked files,
-  # only those changes are analyzed, else only changes in HEAD~ are analyzed.
-  new: false
-
-  # Fix found issues (if it's supported by the linter)
-  fix: false
-
-  # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-issues-per-linter: 0
-
-  # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
-  max-same-issues: 0
+linters:
+  exclusions:
+    rules:
+      - path: '_test\.go'
+        linters:
+          - dupl
+          - errcheck
+          - gocyclo
+          - gosec
+      - path-except: '_test\.go'
+        linters:
+          - staticcheck
+      - path: internal/hmac/
+        text: weak cryptographic primitive
+        linters:
+          - gosec
+      - text: 'SA9003:'
+        linters:
+          - staticcheck
+      - source: foo
+        linters:
+          - err113
 
 # Output configuration options.
 output:
