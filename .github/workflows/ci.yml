@@ -32,11 +32,32 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ github.job }}-
 
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Install formatters
+        run: |
+          go install mvdan.cc/gofumpt@latest
+          go install golang.org/x/tools/cmd/goimports@latest
+
+      - name: Format code
+        run: |
+          gofumpt -w .
+          goimports -w -local github.com/tomiok/queuety .
+
+      - name: Check if formatting changed files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Code formatting changes detected. Please run gofumpt and goimports locally."
+            git diff
+            exit 1
+          fi
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.4
-          args: --timeout=5m
+          args: --timeout=5m --config=.golangci.yml
 
   format:
     name: Format Check
