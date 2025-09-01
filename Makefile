@@ -69,6 +69,8 @@ lint:
 fmt:
 	@echo -e "$(BOLD)$(BLUE)Formatting code...$(RESET)"
 	$(GOFMT)
+	gofumpt -w .
+	goimports -w -local github.com/jackgris/testing-ci .
 	@echo -e "$(GREEN)✓ Code formatted$(RESET)"
 
 ## Run go vet
